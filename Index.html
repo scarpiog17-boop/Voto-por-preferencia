@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Votación por Orden de Preferencia — Explicación Interactiva</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1A1814;
+    --text2: #6B6560;
+    --text3: #9E9890;
+    --amber: #D4820A;
+    --amber-bg: #FEF3DC;
+    --teal: #0F7A5A;
+    --teal-bg: #E0F5ED;
+    --red: #B03030;
+    --red-bg: #FCEAEA;
+    --blue: #1A5FA8;
+    --blue-bg: #E5EFF9;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page { max-width: 640px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 6vw, 3rem);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+  }
+  header p {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.65;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+
+  /* Voter tabs */
+  .voter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .voter-tab {
+    padding: 6px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    background: var(--surface2);
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .voter-tab:hover { border-color: var(--border2); color: var(--text); }
+  .voter-tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .voter-tab.has-vote:not(.active) { border-color: var(--teal); color: var(--teal); background: var(--teal-bg); }
+
+  /* Candidate drag list */
+  .candidate-list { display: flex; flex-direction: column; gap: 7px; }
+  .candidate-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 14px;
+    cursor: grab;
+    user-select: none;
+    transition: box-shadow 0.15s, background 0.15s;
+  }
+  .candidate-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .candidate-row:active { cursor: grabbing; }
+  .candidate-row.dragging { opacity: 0.35; box-shadow: none; }
+  .candidate-row.drag-over { background: var(--surface); border-color: var(--border2); box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
+
+  .rank-badge {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .rank-1 { background: #FDE9B0; color: #92600A; }
+  .rank-2 { background: #E2E0DA; color: #4A4840; }
+  .rank-3 { background: #F5C9B5; color: #7A3518; }
+  .rank-4 { background: #C8DEFA; color: #1A5FA8; }
+  .rank-5 { background: #B8EDD8; color: #0A5C40; }
+
+  .candidate-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .drag-handle { color: var(--text3); font-size: 18px; line-height: 1; }
+
+  /* Submit button */
+  .submit-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--text);
+    color: #fff;
+    transition: opacity 0.15s;
+  }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn.saved { background: var(--teal); border-color: var(--teal); }
+
+  /* Results */
+  .results-area { display: flex; flex-direction: column; gap: 10px; }
+  .round-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+  .round-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .round-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .winner-pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--teal-bg);
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .elim-note {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .elim-note strong { color: var(--red); }
+
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .bar-name { width: 70px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 500; transition: width 0.5s ease; min-width: 0; }
+  .bar-pct { font-size: 12px; color: var(--text2); min-width: 34px; text-align: right; }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text3);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .empty-state span { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text2);
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+  .reset-btn:hover { background: var(--surface2); }
+
+  .votes-tally {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-bottom: 14px;
+  }
+  .tally-chip {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text3);
+  }
+  .tally-chip.voted { background: var(--teal-bg); color: var(--teal); border-color: rgba(15,122,90,0.25); }
+
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Votación por Orden de Preferencia</h1>
+    <p>Cada votante ordena los candidatos según su preferencia. Si nadie supera el 50%, el candidato con menos votos es eliminado y esos votos se transfieren a la siguiente opción de cada votante.</p>
+  </header>
+
+  <div class="card">
+    <div class="section-label">Votos generados aleatoriamente</div>
+    <button class="submit-btn" id="shuffle-btn" onclick="randomizeAndCompute()">🎲 Generar nuevos votos</button>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Resultados</div>
+    <div class="results-area" id="results-area">
+      <div class="empty-state"><span>🗳️</span>Cargando...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CANDIDATES = ["Valentina", "Santiago", "Camila", "Andrés", "Daniela"];
+const NUM_VOTERS = 5;
+const BAR_COLORS = [
+  { bg: "#FDEEC8", text: "#92600A" },
+  { bg: "#C8EED8", text: "#0A5C40" },
+  { bg: "#C8DEFA", text: "#1A5FA8" },
+  { bg: "#F5C9B5", text: "#7A3518" },
+  { bg: "#E0CBFA", text: "#5A1FA8" },
+];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randomizeAndCompute() {
+  const votes = Array.from({ length: NUM_VOTERS }, () => shuffle(CANDIDATES));
+  computeResults(votes);
+}
+
+function computeResults(allVotes) {
+  const resultsArea = document.getElementById('results-area');
+  resultsArea.innerHTML = '';
+  let eliminated = new Set();
+
+  for (let round = 0; round < CANDIDATES.length; round++) {
+    const active = CANDIDATES.filter(c => !eliminated.has(c));
+    const counts = {};
+    active.forEach(c => counts[c] = 0);
+    allVotes.forEach(ballot => {
+      const top = ballot.find(c => !eliminated.has(c));
+      if (top) counts[top] = (counts[top] || 0) + 1;
+    });
+    const total = allVotes.length;
+    const sorted = active.slice().sort((a, b) => counts[b] - counts[a]);
+    const maxVotes = counts[sorted[0]];
+    const isWin = maxVotes / total > 0.5 || active.length <= 2;
+
+    const card = document.createElement('div');
+    card.className = 'round-card';
+
+    const head = document.createElement('div');
+    head.className = 'round-head';
+    const num = document.createElement('div');
+    num.className = 'round-num';
+    num.textContent = 'Ronda ' + (round + 1);
+    head.appendChild(num);
+    if (isWin) {
+      const pill = document.createElement('div');
+      pill.className = 'winner-pill';
+      pill.textContent = '🏆 ' + sorted[0] + ' gana';
+      head.appendChild(pill);
+    }
+    card.appendChild(head);
+
+    sorted.forEach(name => {
+      const count = counts[name] || 0;
+      const pct = Math.round(count / total * 100);
+      const ci = CANDIDATES.indexOf(name);
+      const col = BAR_COLORS[ci];
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'bar-name';
+      nameDiv.textContent = name;
+      const track = document.createElement('div');
+      track.className = 'bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill';
+      fill.style.width = pct + '%';
+      fill.style.background = col.bg;
+      fill.style.color = col.text;
+      if (pct > 14) fill.textContent = count + (count === 1 ? ' voto' : ' votos');
+      track.appendChild(fill);
+      const pctDiv = document.createElement('div');
+      pctDiv.className = 'bar-pct';
+      pctDiv.textContent = pct + '%';
+      row.appendChild(nameDiv);
+      row.appendChild(track);
+      row.appendChild(pctDiv);
+      card.appendChild(row);
+    });
+
+    if (!isWin) {
+      const loser = sorted[sorted.length - 1];
+      const note = document.createElement('div');
+      note.className = 'elim-note';
+      note.innerHTML = '<strong>' + loser + '</strong> es eliminado/a por tener menos votos. Sus votos se transfieren a la siguiente opción de cada votante.';
+      card.appendChild(note);
+      eliminated.add(loser);
+    }
+
+    resultsArea.appendChild(card);
+    if (isWin) break;
+  }
+}
+
+randomizeAndCompute();
+</script>
+</body>
+</html>
